@@ -26,7 +26,7 @@ local SCAN_WAIT_SECONDS = 4     -- Thời gian chờ map/lồng load sau khi và
 local HOP_RETRY_DELAY = 3       -- Thời gian chờ giữa các lần hop
 
 -- Sau khi lấy link Raw GitHub, dán vào đây để tự chạy lại khi hop server
-local RAW_SCRIPT_URL = ""
+local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/sthfun369/Steal-And-Ride/refs/heads/main/Stea_Ride.lua"
 local AUTO_START_HOP_ON_TELEPORT = true
 
 -- Danh sách các tọa độ Teleport
