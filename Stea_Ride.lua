@@ -5,16 +5,12 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- ==========================================
--- CẤU HÌNH VÙNG, TỌA ĐỘ & AUTO SERVER HOP
--- ==========================================
 local REGIONS = {
 	{ pathName = "Path35", regionName = "Yomi River", shortName = "Yomi", accent = Color3.fromRGB(255, 110, 110) },
 	{ pathName = "Path34", regionName = "Golden Throne", shortName = "Throne", accent = Color3.fromRGB(255, 215, 95) },
 	{ pathName = "Path33", regionName = "Cloud Palace", shortName = "Cloud", accent = Color3.fromRGB(125, 210, 255) },
 }
 
--- Các lựa chọn nhanh hiển thị thành nút bật/tắt trên menu
 local PRESET_TARGETS = {
 	{ id = "yomi_asc", label = "Yomi: AscendedCage", pathName = "Path35", cageName = "AscendedCage", default = true },
 	{ id = "throne_singplus", label = "Throne: Singularity+Cage", pathName = "Path34", cageName = "Singularity+Cage", default = true },
@@ -28,13 +24,12 @@ local SCOPE_OPTIONS = {
 	{ key = "Path33", label = "Vùng: Cloud Palace" },
 }
 
-local SCAN_WAIT_SECONDS = 4 -- Thời gian chờ map/lồng load sau khi vào server
-local HOP_RETRY_DELAY = 3   -- Thời gian chờ giữa các lần hop
+local SCAN_WAIT_SECONDS = 4
+local HOP_RETRY_DELAY = 3
 
 local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/sthfun369/Steal-And-Ride/refs/heads/main/Stea_Ride.lua"
 local AUTO_START_HOP_ON_TELEPORT = true
 
--- Danh sách các tọa độ Teleport
 local TP_LOCATIONS = {
 	{ name = "Back", pos = Vector3.new(12004, 4, -475), color = Color3.fromRGB(120, 145, 215) },
 	{ name = "Cloud Palace", pos = Vector3.new(11948, 4, -13392), color = Color3.fromRGB(70, 155, 225) },
@@ -42,7 +37,6 @@ local TP_LOCATIONS = {
 	{ name = "Yomi River", pos = Vector3.new(11947, 4, -19702), color = Color3.fromRGB(205, 80, 95) },
 }
 
--- Khôi phục tùy chọn lồng nếu vừa hop từ server khác sang
 local savedPrefs = (getgenv and getgenv().CAGE_HOP_PREFS) or nil
 local shouldAutoStart = (getgenv and getgenv().AUTO_HOP_BOOT == true) and true or false
 if getgenv then
@@ -89,7 +83,6 @@ local function cleanStr(str)
 	return string.lower(tostring(str or "")):gsub("%s+", "")
 end
 
--- Hàm dịch chuyển nhân vật tới tọa độ
 local function teleportTo(targetPos)
 	local char = LocalPlayer.Character
 	if not char then return end
@@ -106,7 +99,6 @@ local function teleportTo(targetPos)
 	end
 end
 
--- Quét số lượng từng loại Cage trong một Path cụ thể
 local function scanRegionCages(pathName)
 	local countsByType = {}
 	local totalInRegion = 0
@@ -162,9 +154,7 @@ local function formatCountsText(foundPath, totalInRegion, countsByType, errMsg)
 	return table.concat(lines, "\n")
 end
 
--- Tổng hợp danh sách điều kiện đang được bật từ UI
 local function buildActiveRules()
-	-- Trả về danh sách các rule: { label = "...", pathName = "Path35" hoặc "ALL", cageName = "..." }
 	local rules = {}
 
 	for _, p in ipairs(PRESET_TARGETS) do
@@ -195,7 +185,6 @@ local function buildActiveRules()
 	return rules
 end
 
--- Kiểm tra server hiện tại có khớp các lồng đã chọn hay không
 local function checkHopConditionMet()
 	local activeRules = buildActiveRules()
 	if #activeRules == 0 then
@@ -242,7 +231,6 @@ local function checkHopConditionMet()
 	end
 end
 
--- Đăng ký tự chạy lại và mang theo cấu hình lồng sang server mới
 local function queueSelfOnTeleport()
 	if RAW_SCRIPT_URL == "" then
 		return
@@ -275,7 +263,6 @@ local function queueSelfOnTeleport()
 	end)
 end
 
--- Chuyển sang server khác
 local function hopToOtherServer()
 	HopState.Status = "Đang tìm server..."
 	local cursor = ""
@@ -332,10 +319,6 @@ local function hopToOtherServer()
 		TeleportService:TeleportToPlaceInstance(game.PlaceId, nextJobId, LocalPlayer)
 	end)
 end
-
--- ==========================================
--- 1. TẠO GIAO DIỆN MENU & NÚT TELEPORT
--- ==========================================
 if PlayerGui:FindFirstChild("RegionCageScannerGui") then
 	PlayerGui.RegionCageScannerGui:Destroy()
 end
@@ -365,7 +348,6 @@ MainStroke.Color = Color3.fromRGB(70, 75, 95)
 MainStroke.Thickness = 1.2
 MainStroke.Parent = MainFrame
 
--- Thanh tiêu đề
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, HEADER_HEIGHT)
 Header.BackgroundColor3 = Color3.fromRGB(30, 33, 42)
@@ -407,7 +389,6 @@ CloseBtn.TextSize = 12
 CloseBtn.Parent = Header
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
--- Khung cuộn chính
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(1, -16, 1, -44)
 ScrollFrame.Position = UDim2.new(0, 8, 0, 38)
@@ -423,9 +404,6 @@ ListLayout.Padding = UDim.new(0, 8)
 ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ListLayout.Parent = ScrollFrame
 
--- ==========================================
--- THẺ SERVER HOP & TÙY CHỌN LỒNG (LayoutOrder = -1)
--- ==========================================
 local HopCard = Instance.new("Frame")
 HopCard.Name = "ServerHopCard"
 HopCard.Size = UDim2.new(1, -4, 0, 196)
@@ -462,7 +440,6 @@ HopSectionTitle.TextSize = 9
 HopSectionTitle.TextXAlignment = Enum.TextXAlignment.Left
 HopSectionTitle.Parent = HopCard
 
--- Các nút chọn nhanh lồng theo từng vùng
 for i, preset in ipairs(PRESET_TARGETS) do
 	local yPos = 58 + (i - 1) * 24
 	local pBtn = Instance.new("TextButton")
@@ -493,7 +470,6 @@ for i, preset in ipairs(PRESET_TARGETS) do
 	end)
 end
 
--- Ô nhập tên lồng tùy chỉnh + Nút chọn vùng cho lồng tùy chỉnh
 local CustomBox = Instance.new("TextBox")
 CustomBox.Size = UDim2.new(0.54, -10, 0, 22)
 CustomBox.Position = UDim2.new(0, 8, 0, 132)
@@ -535,7 +511,6 @@ ScopeBtn.MouseButton1Click:Connect(function()
 	savePrefsToEnv()
 end)
 
--- Nút chuyển chế độ (Có 1 loại đã chọn là dừng / Phải đủ tất cả loại đã chọn)
 local ModeBtn = Instance.new("TextButton")
 ModeBtn.Size = UDim2.new(1, -16, 0, 18)
 ModeBtn.Position = UDim2.new(0, 8, 0, 157)
@@ -565,7 +540,6 @@ HopStatusLabel.TextTruncate = Enum.TextTruncate.AtEnd
 HopStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 HopStatusLabel.Parent = HopCard
 
--- Khung chứa các nút Teleport (LayoutOrder = 0)
 local TpCard = Instance.new("Frame")
 TpCard.Name = "TeleportCard"
 TpCard.Size = UDim2.new(1, -4, 0, 86)
@@ -605,4 +579,162 @@ GridLayout.Parent = TpGrid
 
 for i, loc in ipairs(TP_LOCATIONS) do
 	local btn = Instance.new("TextButton")
-	btn.Name 
+	btn.Name = "TP_" .. loc.name
+	btn.Text = "TP: " .. loc.name
+	btn.BackgroundColor3 = loc.color
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 10
+	btn.LayoutOrder = i
+	btn.Parent = TpGrid
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+	btn.MouseButton1Click:Connect(function()
+		teleportTo(loc.pos)
+	end)
+end
+
+local regionCards = {}
+
+for idx, cfg in ipairs(REGIONS) do
+	local Card = Instance.new("Frame")
+	Card.Name = cfg.pathName .. "_Card"
+	Card.Size = UDim2.new(1, -4, 0, 92)
+	Card.AutomaticSize = Enum.AutomaticSize.Y
+	Card.BackgroundColor3 = Color3.fromRGB(28, 31, 40)
+	Card.BorderSizePixel = 0
+	Card.LayoutOrder = idx
+	Card.Parent = ScrollFrame
+	Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
+
+	local CardStroke = Instance.new("UIStroke")
+	CardStroke.Color = Color3.fromRGB(52, 57, 74)
+	CardStroke.Thickness = 1
+	CardStroke.Parent = Card
+
+	local Pad = Instance.new("UIPadding")
+	Pad.PaddingTop = UDim.new(0, 8)
+	Pad.PaddingBottom = UDim.new(0, 8)
+	Pad.PaddingLeft = UDim.new(0, 10)
+	Pad.PaddingRight = UDim.new(0, 10)
+	Pad.Parent = Card
+
+	local CardLayout = Instance.new("UIListLayout")
+	CardLayout.Padding = UDim.new(0, 4)
+	CardLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	CardLayout.Parent = Card
+
+	local RegionTitle = Instance.new("TextLabel")
+	RegionTitle.Size = UDim2.new(1, 0, 0, 18)
+	RegionTitle.BackgroundTransparency = 1
+	RegionTitle.Text = string.format("%s (%s) - Tổng: 0", cfg.regionName, cfg.pathName)
+	RegionTitle.TextColor3 = cfg.accent
+	RegionTitle.Font = Enum.Font.GothamBold
+	RegionTitle.TextSize = 12
+	RegionTitle.TextXAlignment = Enum.TextXAlignment.Left
+	RegionTitle.LayoutOrder = 1
+	RegionTitle.Parent = Card
+
+	local DetailLabel = Instance.new("TextLabel")
+	DetailLabel.Size = UDim2.new(1, 0, 0, 16)
+	DetailLabel.AutomaticSize = Enum.AutomaticSize.Y
+	DetailLabel.BackgroundTransparency = 1
+	DetailLabel.Text = "Đang quét..."
+	DetailLabel.TextColor3 = Color3.fromRGB(215, 222, 235)
+	DetailLabel.Font = Enum.Font.GothamSemibold
+	DetailLabel.TextSize = 11
+	DetailLabel.TextWrapped = true
+	DetailLabel.TextXAlignment = Enum.TextXAlignment.Left
+	DetailLabel.TextYAlignment = Enum.TextYAlignment.Top
+	DetailLabel.LayoutOrder = 2
+	DetailLabel.Parent = Card
+
+	regionCards[cfg.pathName] = {
+		cfg = cfg,
+		titleLabel = RegionTitle,
+		detailLabel = DetailLabel,
+	}
+end
+local function refreshAllRegions()
+	for _, entry in pairs(regionCards) do
+		local foundPath, totalInRegion, countsByType, errMsg = scanRegionCages(entry.cfg.pathName)
+		entry.titleLabel.Text = string.format(
+			"%s (%s) - Tổng: %d",
+			entry.cfg.regionName,
+			entry.cfg.pathName,
+			totalInRegion
+		)
+		entry.detailLabel.Text = formatCountsText(foundPath, totalInRegion, countsByType, errMsg)
+	end
+	HopStatusLabel.Text = "Trạng thái: " .. HopState.Status
+end
+
+HopBtn.MouseButton1Click:Connect(function()
+	HopPrefs.CustomText = CustomBox.Text
+	savePrefsToEnv()
+
+	if not HopState.Enabled and #buildActiveRules() == 0 then
+		HopState.Status = "Hãy chọn ít nhất 1 lồng trước khi bật!"
+		refreshAllRegions()
+		return
+	end
+
+	HopState.Enabled = not HopState.Enabled
+	HopBtn.Text = HopState.Enabled and "Server Hop Tìm Lồng: BẬT" or "Server Hop Tìm Lồng: TẮT"
+	HopBtn.BackgroundColor3 = HopState.Enabled and Color3.fromRGB(38, 155, 105) or Color3.fromRGB(55, 65, 85)
+	HopState.Status = HopState.Enabled and ("Chờ " .. SCAN_WAIT_SECONDS .. "s để quét lồng...") or "Đã tắt"
+	refreshAllRegions()
+end)
+
+MinBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	ScrollFrame.Visible = not isMinimized
+	MinBtn.Text = isMinimized and "+" or "-"
+	MainFrame.Size = isMinimized and UDim2.new(0, FULL_WIDTH, 0, HEADER_HEIGHT) or UDim2.new(0, FULL_WIDTH, 0, FULL_HEIGHT)
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+	HopState.Enabled = false
+	ScreenGui:Destroy()
+end)
+
+refreshAllRegions()
+task.spawn(function()
+	while ScreenGui.Parent do
+		task.wait(1)
+		refreshAllRegions()
+	end
+end)
+
+task.spawn(function()
+	local enterTime = os.clock()
+	while ScreenGui.Parent do
+		task.wait(1)
+		if HopState.Enabled then
+			local elapsed = os.clock() - enterTime
+			if elapsed < SCAN_WAIT_SECONDS then
+				HopState.Status = string.format("Chờ lồng load: %.0fs", SCAN_WAIT_SECONDS - elapsed)
+			else
+				local met, summary = checkHopConditionMet()
+				if met then
+					HopState.Enabled = false
+					HopBtn.Text = "Server Hop Tìm Lồng: TẮT"
+					HopBtn.BackgroundColor3 = Color3.fromRGB(55, 65, 85)
+					HopState.Status = "Đã dừng! Có: " .. summary
+					refreshAllRegions()
+				else
+					HopState.Status = "Chưa có lồng mục tiêu, đang hop..."
+					refreshAllRegions()
+					task.wait(HOP_RETRY_DELAY)
+					if HopState.Enabled and ScreenGui.Parent then
+						hopToOtherServer()
+						enterTime = os.clock()
+					end
+				end
+			end
+		end
+	end
+end)
+
+
+
