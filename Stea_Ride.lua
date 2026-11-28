@@ -6,16 +6,21 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- ==========================================
--- CẤU HÌNH DUY NHẤT: PATH36 & PRIMORDIALCAGE
+-- CẤU HÌNH PATH36, PRIMORDIALCAGE & HOP NHANH
 -- ==========================================
 local TARGET_PATH = "Path36"
 local TARGET_CAGE = "PrimordialCage"
 
-local SCAN_WAIT_SECONDS = 4
-local HOP_RETRY_DELAY = 3
+local SCAN_WAIT_SECONDS = 1.5 -- Chờ load lồng nhanh hơn
+local HOP_RETRY_DELAY = 0.5   -- Nghỉ ngắn giữa các lần hop
 
 local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/sthfun369/Steal-And-Ride/refs/heads/main/Stea_Ride.lua"
 local AUTO_START_HOP_ON_TELEPORT = true
+
+local TP_LOCATIONS = {
+	{ name = "Back", pos = Vector3.new(11989, 4, -495), color = Color3.fromRGB(120, 145, 215) },
+	{ name = "NewZone", pos = Vector3.new(11945, 4, -11458), color = Color3.fromRGB(70, 165, 195) },
+}
 
 local shouldAutoStart = (getgenv and getgenv().AUTO_HOP_BOOT == true) and true or false
 if getgenv then
@@ -24,7 +29,7 @@ end
 
 local HopState = {
 	Enabled = shouldAutoStart,
-	Status = shouldAutoStart and ("Chờ " .. SCAN_WAIT_SECONDS .. "s để quét Path36...") or "Sẵn sàng",
+	Status = shouldAutoStart and ("Chờ " .. SCAN_WAIT_SECONDS .. "s quét Path36...") or "Sẵn sàng",
 }
 
 local visitedServers = {
@@ -33,6 +38,22 @@ local visitedServers = {
 
 local function cleanStr(str)
 	return string.lower(tostring(str or "")):gsub("%s+", "")
+end
+
+local function teleportTo(targetPos)
+	local char = LocalPlayer.Character
+	if not char then return end
+
+	local root = char:FindFirstChild("HumanoidRootPart")
+	local safePos = targetPos + Vector3.new(0, 3, 0)
+
+	if root then
+		root.AssemblyLinearVelocity = Vector3.zero
+		root.AssemblyAngularVelocity = Vector3.zero
+		root.CFrame = CFrame.new(safePos)
+	elseif char.PrimaryPart then
+		char:PivotTo(CFrame.new(safePos))
+	end
 end
 
 local function scanPath36()
@@ -113,7 +134,7 @@ local function queueSelfOnTeleport()
 	end
 
 	local payload = string.format([[
-		task.wait(2)
+		task.wait(0.8)
 		if getgenv then
 			getgenv().AUTO_HOP_BOOT = %s
 		end
@@ -126,11 +147,11 @@ local function queueSelfOnTeleport()
 end
 
 local function hopToOtherServer()
-	HopState.Status = "Đang tìm server..."
+	HopState.Status = "Hop nhanh..."
 	local cursor = ""
 	local servers = {}
 
-	for _ = 1, 5 do
+	for _ = 1, 2 do
 		local url = string.format(
 			"https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100%s",
 			game.PlaceId,
@@ -160,6 +181,10 @@ local function hopToOtherServer()
 			end
 		end
 
+		if #servers >= 25 then
+			break
+		end
+
 		if body.nextPageCursor and tostring(body.nextPageCursor) ~= "" then
 			cursor = tostring(body.nextPageCursor)
 		else
@@ -168,13 +193,13 @@ local function hopToOtherServer()
 	end
 
 	if #servers == 0 then
-		HopState.Status = "Không còn server trống mới, thử lại..."
+		HopState.Status = "Hết server mới, thử lại..."
 		return
 	end
 
 	local nextJobId = servers[math.random(1, #servers)]
 	visitedServers[nextJobId] = true
-	HopState.Status = "Đang hop sang server mới..."
+	HopState.Status = "Đang hop..."
 	queueSelfOnTeleport()
 
 	pcall(function()
@@ -183,7 +208,7 @@ local function hopToOtherServer()
 end
 
 -- ==========================================
--- GIAO DIỆN GỌN CHO PATH36 & PRIMORDIALCAGE
+-- GIAO DIỆN TP BACK / NEWZONE & PATH36 HOP
 -- ==========================================
 if PlayerGui:FindFirstChild("Path36PrimordialGui") then
 	PlayerGui.Path36PrimordialGui:Destroy()
@@ -195,7 +220,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
 local FULL_WIDTH = 310
-local FULL_HEIGHT = 215
+local FULL_HEIGHT = 252
 local HEADER_HEIGHT = 32
 
 local MainFrame = Instance.new("Frame")
@@ -255,8 +280,31 @@ BodyFrame.Position = UDim2.new(0, 8, 0, 36)
 BodyFrame.BackgroundTransparency = 1
 BodyFrame.Parent = MainFrame
 
+local TpRow = Instance.new("Frame")
+TpRow.Size = UDim2.new(1, 0, 0, 28)
+TpRow.BackgroundTransparency = 1
+TpRow.Parent = BodyFrame
+
+for i, loc in ipairs(TP_LOCATIONS) do
+	local tpBtn = Instance.new("TextButton")
+	tpBtn.Size = UDim2.new(0.485, 0, 1, 0)
+	tpBtn.Position = UDim2.new((i - 1) * 0.515, 0, 0, 0)
+	tpBtn.BackgroundColor3 = loc.color
+	tpBtn.Text = "TP: " .. loc.name
+	tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tpBtn.Font = Enum.Font.GothamBold
+	tpBtn.TextSize = 10
+	tpBtn.Parent = TpRow
+	Instance.new("UICorner", tpBtn).CornerRadius = UDim.new(0, 6)
+
+	tpBtn.MouseButton1Click:Connect(function()
+		teleportTo(loc.pos)
+	end)
+end
+
 local HopBtn = Instance.new("TextButton")
 HopBtn.Size = UDim2.new(1, 0, 0, 30)
+HopBtn.Position = UDim2.new(0, 0, 0, 34)
 HopBtn.BackgroundColor3 = HopState.Enabled and Color3.fromRGB(38, 155, 105) or Color3.fromRGB(55, 65, 85)
 HopBtn.Text = HopState.Enabled and "Auto Hop PrimordialCage: BẬT" or "Auto Hop PrimordialCage: TẮT"
 HopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -267,7 +315,7 @@ Instance.new("UICorner", HopBtn).CornerRadius = UDim.new(0, 6)
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1, 0, 0, 18)
-StatusLabel.Position = UDim2.new(0, 2, 0, 34)
+StatusLabel.Position = UDim2.new(0, 2, 0, 68)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = "Trạng thái: " .. HopState.Status
 StatusLabel.TextColor3 = Color3.fromRGB(130, 215, 255)
@@ -279,7 +327,7 @@ StatusLabel.Parent = BodyFrame
 
 local ScanCard = Instance.new("Frame")
 ScanCard.Size = UDim2.new(1, 0, 0, 114)
-ScanCard.Position = UDim2.new(0, 0, 0, 56)
+ScanCard.Position = UDim2.new(0, 0, 0, 90)
 ScanCard.BackgroundColor3 = Color3.fromRGB(28, 31, 40)
 ScanCard.BorderSizePixel = 0
 ScanCard.Parent = BodyFrame
@@ -319,7 +367,7 @@ HopBtn.MouseButton1Click:Connect(function()
 	HopState.Enabled = not HopState.Enabled
 	HopBtn.Text = HopState.Enabled and "Auto Hop PrimordialCage: BẬT" or "Auto Hop PrimordialCage: TẮT"
 	HopBtn.BackgroundColor3 = HopState.Enabled and Color3.fromRGB(38, 155, 105) or Color3.fromRGB(55, 65, 85)
-	HopState.Status = HopState.Enabled and ("Chờ " .. SCAN_WAIT_SECONDS .. "s để quét Path36...") or "Đã tắt"
+	HopState.Status = HopState.Enabled and ("Chờ " .. SCAN_WAIT_SECONDS .. "s quét Path36...") or "Đã tắt"
 	refreshUI()
 end)
 
@@ -339,7 +387,7 @@ refreshUI()
 
 task.spawn(function()
 	while ScreenGui.Parent do
-		task.wait(1)
+		task.wait(0.5)
 		refreshUI()
 	end
 end)
@@ -347,21 +395,21 @@ end)
 task.spawn(function()
 	local enterTime = os.clock()
 	while ScreenGui.Parent do
-		task.wait(1)
+		task.wait(0.4)
 		if HopState.Enabled then
 			local elapsed = os.clock() - enterTime
 			if elapsed < SCAN_WAIT_SECONDS then
-				HopState.Status = string.format("Chờ Path36 load: %.0fs", SCAN_WAIT_SECONDS - elapsed)
+				HopState.Status = string.format("Chờ load: %.1fs", SCAN_WAIT_SECONDS - elapsed)
 			else
 				local found, count = hasPrimordialCage()
 				if found then
 					HopState.Enabled = false
 					HopBtn.Text = "Auto Hop PrimordialCage: TẮT"
 					HopBtn.BackgroundColor3 = Color3.fromRGB(55, 65, 85)
-					HopState.Status = string.format("Đã dừng! Path36 có %s (%d)", TARGET_CAGE, count)
+					HopState.Status = string.format("Đã dừng! Có %s (%d)", TARGET_CAGE, count)
 					refreshUI()
 				else
-					HopState.Status = "Chưa có PrimordialCage ở Path36, đang hop..."
+					HopState.Status = "Không có PrimordialCage, hop..."
 					refreshUI()
 					task.wait(HOP_RETRY_DELAY)
 					if HopState.Enabled and ScreenGui.Parent then
@@ -373,4 +421,3 @@ task.spawn(function()
 		end
 	end
 end)
-
